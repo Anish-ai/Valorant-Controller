@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Controller Console</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #000;
+            color: #fff;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #log {
+            width: 80%;
+            height: 60vh;
+            overflow-y: auto;
+            border: 1px solid #444;
+            padding: 15px;
+            background-color: #111;
+            color: #0f0;
+            font-family: monospace;
+            font-size: 1.1em;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        #log div {
+            margin: 5px 0;
+            padding: 3px 0;
+            border-bottom: 1px solid #222;
+            word-wrap: break-word;
+        }
+
+        .timestamp {
+            color: #666;
+            margin-right: 10px;
+        }
+
+        /* Add smooth scrolling for log updates */
+        #log {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body>
+    <h1>Game Controller Server. Do not close the device.</h1>
+    <div id="log">
+        <div>Initializing console log...</div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const log = document.getElementById('log');
+        let isConnected = false;
+
+        function getTimestamp() {
+            const now = new Date();
+            return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+        }
+
+        function logMessage(message) {
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span class="timestamp">[${getTimestamp()}]</span> ${message}`;
+            log.appendChild(logEntry);
+
+            // Keep only the last 100 messages to prevent memory issues
+            while (log.children.length > 100) {
+                log.removeChild(log.firstChild);
+            }
+
+            // Scroll to bottom
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // Socket event handlers
+        socket.on('connect', () => {
+            if (!isConnected) {
+                logMessage('Connected to server');
+                isConnected = true;
+            }
+        });
+
+        socket.on('logMessage', (message) => {
+            logMessage(message);
+        });
+
+        socket.on('disconnect', () => {
+            logMessage('Disconnected from server');
+            isConnected = false;
+        });
+
+        // Error handling
+        socket.on('connect_error', (error) => {
+            logMessage(`Connection error: ${error.message}`);
+            isConnected = false;
+        });
+
+        socket.on('error', (error) => {
+            logMessage(`Socket error: ${error.message}`);
+        });
+
+        // Clear log button (optional)
+        function addClearButton() {
+            const button = document.createElement('button');
+            button.textContent = 'Clear Log';
+            button.style.cssText = 'margin: 10px; padding: 8px 16px; background: #333; color: #fff; border: none; border-radius: 4px; cursor: pointer;';
+            button.onclick = () => {
+                log.innerHTML = '<div>Log cleared...</div>';
+            };
+            document.body.appendChild(button);
+        }
+        addClearButton();
+    </script>
+</body>
+</html>
